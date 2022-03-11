@@ -4,7 +4,7 @@ import (
 	context "context"
 
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
-	"fmt"
+	//"fmt"
 )
 
 type MetaStore struct {
@@ -35,7 +35,7 @@ func (m *MetaStore) UpdateFile(ctx context.Context, fileMetaData *FileMetaData) 
 		m.FileMetaMap[key] = fileMetaData
 		temp.Version = newVersion
 	}
-	fmt.Println(m.FileMetaMap[key])
+	// fmt.Println(m.FileMetaMap[key])
 	return &temp, nil
 }
 

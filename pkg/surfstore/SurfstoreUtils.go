@@ -109,7 +109,7 @@ func Upload(client *RPCClient, m map[string]*FileMetaData, blockStoreAddr string
 	for file, metadata := range m {
 		var latestVersion int32
 		client.UpdateFile(metadata, &latestVersion) // only new versions updated
-		println("updating file")
+		//println("updating file")
 		if latestVersion != -1 { // we made update, so need to update blocks
 			// put blocks
 			if _, err := os.Stat(ConcatPath(client.BaseDir, file)); errors.Is(err, os.ErrNotExist) { // file deleted
@@ -130,10 +130,10 @@ func Upload(client *RPCClient, m map[string]*FileMetaData, blockStoreAddr string
 						}
 						break
 					}
-					if bytes != client.BlockSize {
-						println(int32(bytes))
-						println(buf[:bytes])
-					}
+					// if bytes != client.BlockSize {
+						// println(int32(bytes))
+						// println(buf[:bytes])
+					// }
 					temp := Block {
 						BlockData: buf,
 						BlockSize: int32(bytes),
