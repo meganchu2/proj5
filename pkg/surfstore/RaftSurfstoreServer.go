@@ -107,11 +107,14 @@ func (s *RaftSurfstore) attemptCommit() {
     }
         
     commitCount := 1 // count self
+    crashCount := 0
     for commitCount < len(s.ipList) {
         // TODO handle crashed nodes
         commit := <-commitChan
         if commit != nil && commit.Success {
             commitCount++
+        } else {
+            crashCount++
         }
         if commitCount > len(s.ipList) / 2 {
             s.pendingCommits[targetIdx] <- true
@@ -120,6 +123,10 @@ func (s *RaftSurfstore) attemptCommit() {
             print(" ")
             println(s.commitIndex)
             //break
+        }
+        if crashCount > len(s.ipList) / 2 {
+            s.pendingCommits[targetIdx] <- false
+            break
         }
     }
 }
@@ -152,6 +159,10 @@ func (s *RaftSurfstore) commitEntry(serverIdx, entryIdx int64, commitChan chan *
         output, _ := client.AppendEntries(ctx, input)
         if output.Success {
             commitChan <- output
+            return
+        }
+        if !output.Success {
+            commitChan <- nil
             return
         }
         // TODO update state. s.nextIndex, etc
