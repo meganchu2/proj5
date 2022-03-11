@@ -198,7 +198,7 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
     ///////////////////////////
     s.isLeaderMutex.Lock()
     s.isLeader = true
-    s.isLeaderCond.Broadcast()
+    //s.isLeaderCond.Broadcast()
     s.isLeaderMutex.Unlock()
     s.term++
     return &Success{Flag: true}, nil
