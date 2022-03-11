@@ -153,6 +153,9 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 
     //////////////////////////////
     //////////////////////////////
+    s.isLeaderMutex.Lock()
+    s.isLeader = false
+    s.isLeaderMutex.Unlock()
     output := &AppendEntryOutput{
         Success: false,
         MatchedIndex: -1,
@@ -197,13 +200,9 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
     //////////////////////////
     ///////////////////////////
     s.isLeaderMutex.Lock()
-    if s.isLeader { // no longer leader
-        s.isLeader = false
-    } else {
-        s.isLeader = true	
-        s.term++
-    }
+    s.isLeader = true	
 	s.isLeaderMutex.Unlock()
+	s.term++
 	return &Success{Flag: true}, nil
     /////////////////////////////
     /////////////////////////////
