@@ -48,7 +48,7 @@ type RaftSurfstore struct {
 func (s *RaftSurfstore) GetFileInfoMap(ctx context.Context, empty *emptypb.Empty) (*FileInfoMap, error) {
 	//panic("todo")
     if s.isCrashed {
-        return nil, ERR_SERVER_CRASHED
+        return nil, nil
     }
     return s.metaStore.GetFileInfoMap(ctx, empty)
 	//return nil, nil
@@ -56,8 +56,10 @@ func (s *RaftSurfstore) GetFileInfoMap(ctx context.Context, empty *emptypb.Empty
 
 func (s *RaftSurfstore) GetBlockStoreAddr(ctx context.Context, empty *emptypb.Empty) (*BlockStoreAddr, error) {
 	//panic("todo")
+    print("here")
+    println(s.serverId)
     if s.isCrashed {
-        return nil, ERR_SERVER_CRASHED
+        return nil, nil
     }
     return s.metaStore.GetBlockStoreAddr(ctx, empty)
 	//return nil, nil
@@ -68,11 +70,11 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 
 	///////////////////////////
 	///////////////////////////
-    if !s.isLeader {
-        return nil, ERR_NOT_LEADER
-    }
     if s.isCrashed {
         return nil, ERR_SERVER_CRASHED
+    }
+    if !s.isLeader {
+        return nil, ERR_NOT_LEADER
     }
 	op := UpdateOperation{
         Term: s.term,
@@ -119,9 +121,6 @@ func (s *RaftSurfstore) attemptCommit() {
         if commitCount > len(s.ipList) / 2 {
             s.pendingCommits[targetIdx] <- true
             s.commitIndex = targetIdx
-            print(s.serverId)
-            print(" ")
-            println(s.commitIndex)
             //break
         }
         if crashCount > len(s.ipList) / 2 {
@@ -214,8 +213,6 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
     k := 0
     for i, entry := range input.Entries {
         if len(s.log) > i && s.log[i].Term != entry.Term {
-            print("conflict")
-            println(i)
             s.log = s.log[:i]
             break
         }
@@ -230,8 +227,6 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
     //5. If leaderCommit > commitIndex, set commitIndex = min(leaderCommit, index
     //of last new entry)
     // TODO only do this if leaderCommit > commitIndex
-    println(input.LeaderCommit)
-    println(s.commitIndex)
     if input.LeaderCommit > s.commitIndex {
         s.commitIndex = int64(math.Min(float64(input.LeaderCommit), float64(len(s.log) - 1)))
     }

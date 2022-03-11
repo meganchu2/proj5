@@ -90,11 +90,15 @@ func (surfClient *RPCClient) HasBlocks(blockHashesIn []string, blockStoreAddr st
 	return conn.Close()
 }
 
+
+
 func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileMetaData) error {
 	// panic("todo")
 	// connect to the server //surfClient.MetaStoreAddr, grpc.WithTransportCredentials(insecure.NewCredentials())?
+	println("getfileinfo")
 	crashCount := 0
 	for _, addr := range surfClient.MetaStoreAddrs {
+		println(addr)
 		conn, err := grpc.Dial(addr, grpc.WithInsecure())
 		if err != nil {
 			return err
@@ -107,14 +111,12 @@ func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileM
 		defer cancel()
 		mp, err := c.GetFileInfoMap(ctx, &emptypb.Empty{})
 		if err != nil {
-			if err == ERR_SERVER_CRASHED || err == ERR_NOT_LEADER {
-				if err == ERR_SERVER_CRASHED {
-					crashCount++
-				}
-				continue // 
-			}
 			conn.Close()
 			return err
+		}
+		if mp == nil {
+			crashCount++
+			continue
 		}
 		*serverFileInfoMap = mp.FileInfoMap
 		
@@ -131,6 +133,7 @@ func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileM
 
 func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersion *int32) error {
 	// panic("todo")
+	println("updatefile")
 	// connect to the server //surfClient.MetaStoreAddr, grpc.WithTransportCredentials(insecure.NewCredentials())
 	crashCount := 0
 	for _, addr := range surfClient.MetaStoreAddrs {
@@ -146,14 +149,12 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 		defer cancel()
 		v, err := c.UpdateFile(ctx, fileMetaData)		
 		if err != nil {
-			if err == ERR_SERVER_CRASHED || err == ERR_NOT_LEADER {
-				if err == ERR_SERVER_CRASHED {
-					crashCount++
-				}
-				continue // 
-			}
 			conn.Close()
 			return err
+		}
+		if v == nil {
+			crashCount++
+			continue
 		}
 		*latestVersion = v.Version
 
@@ -171,6 +172,7 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 func (surfClient *RPCClient) GetBlockStoreAddr(blockStoreAddr *string) error {
 	// panic("todo")
 	// connect to the server //surfClient.MetaStoreAddr, grpc.WithTransportCredentials(insecure.NewCredentials())?
+	println("getblockstore")
 	crashCount := 0
 	for _, addr := range surfClient.MetaStoreAddrs {
 		conn, err := grpc.Dial(addr, grpc.WithInsecure())
@@ -186,14 +188,12 @@ func (surfClient *RPCClient) GetBlockStoreAddr(blockStoreAddr *string) error {
 		temp := emptypb.Empty{}
 		addr, err := c.GetBlockStoreAddr(ctx, &temp)
 		if err != nil {
-			if err == ERR_SERVER_CRASHED || err == ERR_NOT_LEADER {
-				if err == ERR_SERVER_CRASHED {
-					crashCount++
-				}
-				continue // 
-			}
 			conn.Close()
 			return err
+		}
+		if addr == nil {
+			crashCount++
+			continue
 		}
 		*blockStoreAddr = addr.Addr
 
