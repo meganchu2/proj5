@@ -114,10 +114,10 @@ func (s *RaftSurfstore) commitEntry(serverIdx, entryIdx int64, commitChan chan *
         addr := s.ipList[serverIdx]
         conn, err := grpc.Dial(addr, grpc.WithInsecure())
         if err != nil {
-            return
+            continue//return
         }
         client := NewRaftSurfstoreClient(conn)
-
+        
         // TODO create correct AppendEntryInput from s.nextIndex, etc
         input := &AppendEntryInput{
             Term: s.term,
@@ -126,18 +126,23 @@ func (s *RaftSurfstore) commitEntry(serverIdx, entryIdx int64, commitChan chan *
             Entries: s.log[:entryIdx+1],
             LeaderCommit: s.commitIndex,
         }
+        
+       
         if entryIdx > 0 {
             input.PrevLogTerm = s.log[entryIdx - 1].Term
             input.PrevLogIndex = entryIdx - 1
         }
-
+        
+        
         ctx, cancel := context.WithTimeout(context.Background(), time.Second)
         defer cancel()
         output, _ := client.AppendEntries(ctx, input)
         if output.Success {
+            println("here3")
             commitChan <- output
             return
         }
+        
         // TODO update state. s.nextIndex, etc
 
         // TODO handle crashed/ non success cases
@@ -177,7 +182,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
     }
 
     //2. Reply false if log doesn’t contain an entry at prevLogIndex whose term
-    if input.PrevLogIndex < 0 || int64(len(s.log)) <= input.PrevLogIndex || s.log[input.PrevLogIndex].Term != input.PrevLogTerm {
+    if input.PrevLogIndex >= 0 && (int64(len(s.log)) <= input.PrevLogIndex || s.log[input.PrevLogIndex].Term != input.PrevLogTerm) {
         return output, nil
     }
 
@@ -186,7 +191,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
     //terms), delete the existing entry and all that follow it (§5.3)
     k := 0
     for i, entry := range input.Entries {
-        if s.log[i].Term != entry.Term {
+        if len(s.log) > i && s.log[i].Term != entry.Term {
             print("conflict")
             println(i)
             s.log = s.log[:i]
@@ -239,7 +244,8 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
 
         conn, err := grpc.Dial(addr, grpc.WithInsecure())
         if err != nil {
-            return nil, nil
+            //crashed
+            continue
         }
 
         client := NewRaftSurfstoreClient(conn)
@@ -280,7 +286,8 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 
         conn, err := grpc.Dial(addr, grpc.WithInsecure())
         if err != nil {
-            return nil, nil
+            // return nil, nil
+            continue
         }
 
         client := NewRaftSurfstoreClient(conn)
