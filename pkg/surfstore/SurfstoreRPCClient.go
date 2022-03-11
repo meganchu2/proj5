@@ -121,6 +121,8 @@ func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileM
 		if crashCount > len(surfClient.MetaStoreAddrs)/2 {
 			return fmt.Errorf("more than half servers crashed")
 		}
+		print("crash count")
+		println(crashCount)
 		// close the connection
 		return conn.Close()
 	}
@@ -158,6 +160,8 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 		if crashCount > len(surfClient.MetaStoreAddrs)/2 {
 			return fmt.Errorf("more than half servers crashed")
 		}
+		print("crash count")
+		println(crashCount)
 
 		// close the connection
 		return conn.Close()
@@ -197,6 +201,8 @@ func (surfClient *RPCClient) GetBlockStoreAddr(blockStoreAddr *string) error {
 		if crashCount > len(surfClient.MetaStoreAddrs)/2 {
 			return fmt.Errorf("more than half servers crashed")
 		}
+		print("crash count")
+		println(crashCount)
 
 		// close the connection
 		return conn.Close()
