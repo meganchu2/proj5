@@ -26,7 +26,7 @@ func TestRaftSetLeader(t *testing.T) {
 		// all should have the leaders term
 		state, _ := server.GetInternalState(test.Context, &emptypb.Empty{})
 		if state.Term != int64(1) {
-			t.Logf("Server %d should be in term %d", idx, 1)
+			t.Logf("Server %d should be in term %d but is in term %d", idx, 1, state.Term)
 			t.Fail()
 		}
 		if idx == leaderIdx {
@@ -56,7 +56,7 @@ func TestRaftSetLeader(t *testing.T) {
 		// all should have the leaders term
 		state, _ := server.GetInternalState(test.Context, &emptypb.Empty{})
 		if state.Term != int64(2) {
-			t.Logf("Server should be in term %d", 2)
+			t.Logf("Server %d should be in term %d but is in term %d", idx, 2, state.Term)
 			t.Fail()
 		}
 		if idx == leaderIdx {

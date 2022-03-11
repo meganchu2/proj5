@@ -93,7 +93,7 @@ func (s *RaftSurfstore) attemptCommit() {
         go s.commitEntry(int64(idx), targetIdx, commitChan)
     }
         
-    commitCount := 1
+    commitCount := 1 // count self
     for {
         // TODO handle crashed nodes
         commit := <-commitChan
@@ -126,6 +126,10 @@ func (s *RaftSurfstore) commitEntry(serverIdx, entryIdx int64, commitChan chan *
             Entries: s.log[:entryIdx+1],
             LeaderCommit: s.commitIndex,
         }
+        if entryIdx > 0 {
+            input.PrevLogTerm = s.log[entryIdx - 1].Term
+            input.PrevLogIndex = entryIdx - 1
+        }
 
         ctx, cancel := context.WithTimeout(context.Background(), time.Second)
         defer cancel()
@@ -153,27 +157,55 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 
     //////////////////////////////
     //////////////////////////////
+
+    //append entries called so we are not leader
+    s.isLeaderMutex.Lock()
+    s.isLeader = false
+    println(s.serverId)
+	s.isLeaderMutex.Unlock()
+
     output := &AppendEntryOutput{
         Success: false,
         MatchedIndex: -1,
     }
-
-    if input.Term > s.term {
+    
+    if input.Term >= s.term {
         s.term = input.Term
     }
 
     //1. Reply false if term < currentTerm (§5.1)
+    if input.Term < s.term {
+        return output, nil
+    }
+
     //2. Reply false if log doesn’t contain an entry at prevLogIndex whose term
-    //matches prevLogTerm (§5.3)
+    if input.PrevLogIndex < 0 || int64(len(s.log)) <= input.PrevLogIndex || s.log[input.PrevLogIndex].Term != input.PrevLogTerm {
+        return output, nil
+    }
+
+    
     //3. If an existing entry conflicts with a new one (same index but different
     //terms), delete the existing entry and all that follow it (§5.3)
+    k := 0
+    for i, entry := range input.Entries {
+        if s.log[i].Term != entry.Term {
+            print("conflict")
+            println(i)
+            s.log = s.log[:i]
+            break
+        }
+        k++
+    }
+
     //4. Append any new entries not already in the log
-    s.log = append(s.log, input.Entries...)
+    s.log = append(s.log, input.Entries[k:]...)
 
     //5. If leaderCommit > commitIndex, set commitIndex = min(leaderCommit, index
     //of last new entry)
     // TODO only do this if leaderCommit > commitIndex
-    s.commitIndex = int64(math.Min(float64(input.LeaderCommit), float64(len(s.log) - 1)))
+    if input.LeaderCommit > s.commitIndex {
+        s.commitIndex = int64(math.Min(float64(input.LeaderCommit), float64(len(s.log) - 1)))
+    }
 
     for s.lastApplied < s.commitIndex {
         s.lastApplied++
@@ -196,7 +228,36 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
 	
     //////////////////////////
     ///////////////////////////
+    s.isLeaderMutex.Lock()
+    s.isLeader = true
+	s.isLeaderMutex.Unlock()
     s.term++
+
+    // call appendentries to set isLeader to false
+    for idx, addr := range s.ipList {
+        if int64(idx) == s.serverId {
+            continue
+        }
+
+        conn, err := grpc.Dial(addr, grpc.WithInsecure())
+        if err != nil {
+            return nil, nil
+        }
+
+        client := NewRaftSurfstoreClient(conn)
+
+        input := &AppendEntryInput{
+            Term: s.term,
+            PrevLogTerm: -1,
+            PrevLogIndex: -1,
+            // TODO figure out which entries to send
+            Entries: make([]*UpdateOperation, 0),
+            LeaderCommit: s.commitIndex,
+        }
+        ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+        defer cancel()
+        _, _ = client.AppendEntries(ctx, input)
+    }
 	return &Success{Flag: true}, nil
     /////////////////////////////
     /////////////////////////////
@@ -211,6 +272,9 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 
     ///////////////////////////
     ///////////////////////////
+    if !s.isLeader {
+        return &Success{Flag: false}, nil
+    }
     for idx, addr := range s.ipList {
         if int64(idx) == s.serverId {
             continue
@@ -220,6 +284,7 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
         if err != nil {
             return nil, nil
         }
+
         client := NewRaftSurfstoreClient(conn)
 
         // TODO create correct AppendEntryInput from s.nextIndex, etc
@@ -228,8 +293,12 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
             PrevLogTerm: -1,
             PrevLogIndex: -1,
             // TODO figure out which entries to send
-            Entries: make([]*UpdateOperation, 0),
+            Entries: s.log,//make([]*UpdateOperation, 0),
             LeaderCommit: s.commitIndex,
+        }
+        if len(s.log) > 0{
+            input.PrevLogTerm = s.log[len(s.log) - 1].Term
+            input.PrevLogIndex = int64(len(s.log) - 1)
         }
 
         ctx, cancel := context.WithTimeout(context.Background(), time.Second)
