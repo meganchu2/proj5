@@ -284,7 +284,6 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
         }
 
         client := NewRaftSurfstoreClient(conn)
-	    client.SetLeader(ctx, &emptypb.Empty{})
 	    
         // TODO create correct AppendEntryInput from s.nextIndex, etc
         input := &AppendEntryInput{
