@@ -158,12 +158,10 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
     //////////////////////////////
     //////////////////////////////
 
-    //append entries called so we are not leader
     s.isLeaderMutex.Lock()
     s.isLeader = false
-    println(s.serverId)
-	s.isLeaderMutex.Unlock()
-
+    s.isLeaderMutex.Unlock()
+	
     output := &AppendEntryOutput{
         Success: false,
         MatchedIndex: -1,
@@ -286,7 +284,8 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
         }
 
         client := NewRaftSurfstoreClient(conn)
-
+	    client.SetLeader(ctx, &emptypb.Empty{})
+	    
         // TODO create correct AppendEntryInput from s.nextIndex, etc
         input := &AppendEntryInput{
             Term: s.term,
