@@ -93,74 +93,93 @@ func (surfClient *RPCClient) HasBlocks(blockHashesIn []string, blockStoreAddr st
 func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileMetaData) error {
 	// panic("todo")
 	// connect to the server //surfClient.MetaStoreAddr, grpc.WithTransportCredentials(insecure.NewCredentials())?
-	conn, err := grpc.Dial(surfClient.MetaStoreAddrs[0], grpc.WithInsecure())
-	if err != nil {
-		return err
-	}
-	c := NewRaftSurfstoreClient(conn)
-	// c := NewMetaStoreClient(conn)// NewMetaStoreClient(conn)?
+	for _, addr := range surfClient.MetaStoreAddrs {
+		conn, err := grpc.Dial(addr, grpc.WithInsecure())
+		if err != nil {
+			return err
+		}
+		c := NewRaftSurfstoreClient(conn)
+		// c := NewMetaStoreClient(conn)// NewMetaStoreClient(conn)?
 
-	// perform the call
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	mp, err := c.GetFileInfoMap(ctx, &emptypb.Empty{})
-	if err != nil {
-		conn.Close()
-		return err
-	}
-	*serverFileInfoMap = mp.FileInfoMap
+		// perform the call
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		mp, err := c.GetFileInfoMap(ctx, &emptypb.Empty{})
+		if err == ERR_SERVER_CRASHED || err == ERR_NOT_LEADER {
+			continue // 
+		}
+		if err != nil {
+			conn.Close()
+			return err
+		}
+		*serverFileInfoMap = mp.FileInfoMap
 
-	// close the connection
-	return conn.Close()
+		// close the connection
+		return conn.Close()
+	}
+	return nil
 }
 
 func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersion *int32) error {
 	// panic("todo")
-	// connect to the server //surfClient.MetaStoreAddr, grpc.WithTransportCredentials(insecure.NewCredentials())?
-	conn, err := grpc.Dial(surfClient.MetaStoreAddrs[0], grpc.WithInsecure())
-	if err != nil {
-		return err
-	}
-	c := NewRaftSurfstoreClient(conn)
-	// c := NewMetaStoreClient(conn)// NewMetaStoreClient(conn)?
+	// connect to the server //surfClient.MetaStoreAddr, grpc.WithTransportCredentials(insecure.NewCredentials())
+	for _, addr := range surfClient.MetaStoreAddrs {
+		conn, err := grpc.Dial(addr, grpc.WithInsecure())
+		if err != nil {
+			return err
+		}
+		c := NewRaftSurfstoreClient(conn)
+		// c := NewMetaStoreClient(conn)// NewMetaStoreClient(conn)?
 
-	// perform the call
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	v, err := c.UpdateFile(ctx, fileMetaData)
-	if err != nil {
-		conn.Close()
-		return err
-	}
-	*latestVersion = v.Version
+		// perform the call
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		v, err := c.UpdateFile(ctx, fileMetaData)
+		if err == ERR_SERVER_CRASHED || err == ERR_NOT_LEADER {
+			continue // 
+		}
+		if err != nil {
+			conn.Close()
+			return err
+		}
+		*latestVersion = v.Version
 
-	// close the connection
-	return conn.Close()
+		// close the connection
+		return conn.Close()
+	}
+	return nil
 }
 
 func (surfClient *RPCClient) GetBlockStoreAddr(blockStoreAddr *string) error {
 	// panic("todo")
 	// connect to the server //surfClient.MetaStoreAddr, grpc.WithTransportCredentials(insecure.NewCredentials())?
-	conn, err := grpc.Dial(surfClient.MetaStoreAddrs[0], grpc.WithInsecure())
-	if err != nil {
-		return err
-	}
-	c := NewRaftSurfstoreClient(conn)
-	// c := NewMetaStoreClient(conn)// NewMetaStoreClient(conn)?
+	
+	for _, addr := range surfClient.MetaStoreAddrs {
+		conn, err := grpc.Dial(addr, grpc.WithInsecure())
+		if err != nil {
+			return err
+		}
+		c := NewRaftSurfstoreClient(conn)
+		// c := NewMetaStoreClient(conn)// NewMetaStoreClient(conn)?
 
-	// perform the call
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	temp := emptypb.Empty{}
-	addr, err := c.GetBlockStoreAddr(ctx, &temp)
-	if err != nil {
-		conn.Close()
-		return err
-	}
-	*blockStoreAddr = addr.Addr
+		// perform the call
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		temp := emptypb.Empty{}
+		addr, err := c.GetBlockStoreAddr(ctx, &temp)
+		if err == ERR_SERVER_CRASHED || err == ERR_NOT_LEADER {
+			continue // 
+		}
+		if err != nil {
+			conn.Close()
+			return err
+		}
+		*blockStoreAddr = addr.Addr
 
-	// close the connection
-	return conn.Close()
+		// close the connection
+		return conn.Close()
+	}
+	return nil
 }
 
 // This line guarantees all method for RPCClient are implemented
