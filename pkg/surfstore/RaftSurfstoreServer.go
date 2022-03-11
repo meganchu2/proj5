@@ -215,6 +215,9 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
 
     ///////////////////////////
     ///////////////////////////
+    if !s.isLeader {
+        return Success{Flag: false}, nil
+    }
     for idx, addr := range s.ipList {
         if int64(idx) == s.serverId {
             continue
@@ -225,7 +228,12 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
             return nil, nil
         }
         client := NewRaftSurfstoreClient(conn)
-
+	
+        client := NewRaftSurfstoreClient(conn)
+        client.isLeaderMutex.Lock()
+        client.isLeader = false
+        client.isLeaderMutex.Unlock()
+	    
         // TODO create correct AppendEntryInput from s.nextIndex, etc
         input := &AppendEntryInput{
             Term: s.term,
