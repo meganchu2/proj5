@@ -84,6 +84,7 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 
     success := <-committed
     if success {
+        println("Server %d updated", s.serverId)
         return s.metaStore.UpdateFile(ctx, filemeta)
     }
 	///////////////////////////
@@ -103,7 +104,7 @@ func (s *RaftSurfstore) attemptCommit() {
     }
         
     commitCount := 1 // count self
-    for {
+    for commitCount < len(s.ipList) {
         // TODO handle crashed nodes
         commit := <-commitChan
         if commit != nil && commit.Success {
@@ -112,7 +113,10 @@ func (s *RaftSurfstore) attemptCommit() {
         if commitCount > len(s.ipList) / 2 {
             s.pendingCommits[targetIdx] <- true
             s.commitIndex = targetIdx
-            break
+            print(s.serverId)
+            print(" ")
+            println(s.commitIndex)
+            //break
         }
     }
 }
@@ -123,7 +127,7 @@ func (s *RaftSurfstore) commitEntry(serverIdx, entryIdx int64, commitChan chan *
         addr := s.ipList[serverIdx]
         conn, err := grpc.Dial(addr, grpc.WithInsecure())
         if err != nil {
-            continue//return
+            return
         }
         client := NewRaftSurfstoreClient(conn)
         
@@ -134,24 +138,19 @@ func (s *RaftSurfstore) commitEntry(serverIdx, entryIdx int64, commitChan chan *
             PrevLogIndex: -1,
             Entries: s.log[:entryIdx+1],
             LeaderCommit: s.commitIndex,
-        }
-        
-       
+        }   
         if entryIdx > 0 {
             input.PrevLogTerm = s.log[entryIdx - 1].Term
             input.PrevLogIndex = entryIdx - 1
         }
         
-        
         ctx, cancel := context.WithTimeout(context.Background(), time.Second)
         defer cancel()
         output, _ := client.AppendEntries(ctx, input)
         if output.Success {
-            println("here3")
             commitChan <- output
             return
         }
-        
         // TODO update state. s.nextIndex, etc
 
         // TODO handle crashed/ non success cases
@@ -169,9 +168,6 @@ func (s *RaftSurfstore) commitEntry(serverIdx, entryIdx int64, commitChan chan *
 func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInput) (*AppendEntryOutput, error) {
 	//panic("todo")
 
-    //////////////////////////////
-    //////////////////////////////
-
     s.isLeaderMutex.Lock()
     s.isLeader = false
     s.isLeaderMutex.Unlock()
@@ -179,6 +175,10 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
     output := &AppendEntryOutput{
         Success: false,
         MatchedIndex: -1,
+    }
+
+    if input.LeaderCommit == -2 { // just wanted to update leader
+        return output, nil
     }
     
     if input.Term >= s.term {
@@ -194,7 +194,6 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
     if input.PrevLogIndex >= 0 && (int64(len(s.log)) <= input.PrevLogIndex || s.log[input.PrevLogIndex].Term != input.PrevLogTerm) {
         return output, nil
     }
-
     
     //3. If an existing entry conflicts with a new one (same index but different
     //terms), delete the existing entry and all that follow it (§5.3)
@@ -206,31 +205,37 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
             s.log = s.log[:i]
             break
         }
+        if len(s.log) <= i{
+            break
+        }
         k++
     }
 
     //4. Append any new entries not already in the log
     s.log = append(s.log, input.Entries[k:]...)
-
     //5. If leaderCommit > commitIndex, set commitIndex = min(leaderCommit, index
     //of last new entry)
     // TODO only do this if leaderCommit > commitIndex
+    println(input.LeaderCommit)
+    println(s.commitIndex)
     if input.LeaderCommit > s.commitIndex {
         s.commitIndex = int64(math.Min(float64(input.LeaderCommit), float64(len(s.log) - 1)))
     }
-
+    //println(s.serverId)
+    //println(s.lastApplied)
+    //println(s.commitIndex)
+    //println(len(s.log))
+    //println(len(input.Entries))
     for s.lastApplied < s.commitIndex {
         s.lastApplied++
         entry := s.log[s.lastApplied]
         s.metaStore.UpdateFile(ctx, entry.FileMetaData)
+        println("server %d updated", s.serverId)
     }
 
     output.Success = true
     
     return output, nil
-    //////////////////////////////
-    //////////////////////////////
-
 	//return nil, nil
 }
 
@@ -265,7 +270,7 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
             PrevLogIndex: -1,
             // TODO figure out which entries to send
             Entries: make([]*UpdateOperation, 0),
-            LeaderCommit: s.commitIndex,
+            LeaderCommit: -2,
         }
         ctx, cancel := context.WithTimeout(context.Background(), time.Second)
         defer cancel()
@@ -304,10 +309,10 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
         // TODO create correct AppendEntryInput from s.nextIndex, etc
         input := &AppendEntryInput{
             Term: s.term,
-            PrevLogTerm: -1,
+            PrevLogTerm: 0,
             PrevLogIndex: -1,
             // TODO figure out which entries to send
-            Entries: s.log,//make([]*UpdateOperation, 0),
+            Entries: make([]*UpdateOperation, 0),
             LeaderCommit: s.commitIndex,
         }
         if len(s.log) > 0{
