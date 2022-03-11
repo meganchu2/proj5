@@ -47,12 +47,18 @@ type RaftSurfstore struct {
 
 func (s *RaftSurfstore) GetFileInfoMap(ctx context.Context, empty *emptypb.Empty) (*FileInfoMap, error) {
 	//panic("todo")
+    if s.isCrashed {
+        return nil, ERR_SERVER_CRASHED
+    }
     return s.metaStore.GetFileInfoMap(ctx, empty)
 	//return nil, nil
 }
 
 func (s *RaftSurfstore) GetBlockStoreAddr(ctx context.Context, empty *emptypb.Empty) (*BlockStoreAddr, error) {
 	//panic("todo")
+    if s.isCrashed {
+        return nil, ERR_SERVER_CRASHED
+    }
     return s.metaStore.GetBlockStoreAddr(ctx, empty)
 	//return nil, nil
 }
@@ -62,6 +68,9 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 
 	///////////////////////////
 	///////////////////////////
+    if s.isCrashed {
+        return nil, ERR_SERVER_CRASHED
+    }
 	op := UpdateOperation{
         Term: s.term,
         FileMetaData: filemeta,
