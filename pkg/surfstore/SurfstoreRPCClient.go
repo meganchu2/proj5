@@ -106,27 +106,27 @@ func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileM
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		mp, err := c.GetFileInfoMap(ctx, &emptypb.Empty{})
-		if err == ERR_SERVER_CRASHED || err == ERR_NOT_LEADER {
-			if err == ERR_SERVER_CRASHED {
-				crashCount++
-			}
-			continue // 
-		}
 		if err != nil {
+			if err == ERR_SERVER_CRASHED || err == ERR_NOT_LEADER {
+				if err == ERR_SERVER_CRASHED {
+					crashCount++
+				}
+				continue // 
+			}
 			conn.Close()
 			return err
 		}
 		*serverFileInfoMap = mp.FileInfoMap
-
-		if crashCount > len(surfClient.MetaStoreAddrs)/2 {
-			return fmt.Errorf("more than half servers crashed")
-		}
-		print("crash count")
-		println(crashCount)
+		
 		// close the connection
-		return conn.Close()
+		conn.Close()
 	}
-	return fmt.Errorf("all servers crashed")
+	if crashCount > len(surfClient.MetaStoreAddrs)/2 {
+		return fmt.Errorf("more than half servers crashed")
+	}
+	print("crash count")
+	println(crashCount)
+	return nil
 }
 
 func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersion *int32) error {
@@ -144,29 +144,28 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 		// perform the call
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-		v, err := c.UpdateFile(ctx, fileMetaData)
-		if err == ERR_SERVER_CRASHED || err == ERR_NOT_LEADER {
-			if err == ERR_SERVER_CRASHED {
-				crashCount++
-			}
-			continue // 
-		}
+		v, err := c.UpdateFile(ctx, fileMetaData)		
 		if err != nil {
+			if err == ERR_SERVER_CRASHED || err == ERR_NOT_LEADER {
+				if err == ERR_SERVER_CRASHED {
+					crashCount++
+				}
+				continue // 
+			}
 			conn.Close()
 			return err
 		}
 		*latestVersion = v.Version
 
-		if crashCount > len(surfClient.MetaStoreAddrs)/2 {
-			return fmt.Errorf("more than half servers crashed")
-		}
-		print("crash count")
-		println(crashCount)
-
 		// close the connection
-		return conn.Close()
+		conn.Close()
 	}
-	return fmt.Errorf("all servers crashed")
+	if crashCount > len(surfClient.MetaStoreAddrs)/2 {
+		return fmt.Errorf("more than half servers crashed")
+	}
+	print("crash count")
+	println(crashCount)
+	return nil
 }
 
 func (surfClient *RPCClient) GetBlockStoreAddr(blockStoreAddr *string) error {
@@ -186,28 +185,29 @@ func (surfClient *RPCClient) GetBlockStoreAddr(blockStoreAddr *string) error {
 		defer cancel()
 		temp := emptypb.Empty{}
 		addr, err := c.GetBlockStoreAddr(ctx, &temp)
-		if err == ERR_SERVER_CRASHED || err == ERR_NOT_LEADER {
-			if err == ERR_SERVER_CRASHED {
-				crashCount++
-			}
-			continue // 
-		}
 		if err != nil {
+			if err == ERR_SERVER_CRASHED || err == ERR_NOT_LEADER {
+				if err == ERR_SERVER_CRASHED {
+					crashCount++
+				}
+				continue // 
+			}
 			conn.Close()
 			return err
 		}
 		*blockStoreAddr = addr.Addr
 
-		if crashCount > len(surfClient.MetaStoreAddrs)/2 {
-			return fmt.Errorf("more than half servers crashed")
-		}
-		print("crash count")
-		println(crashCount)
-
+		
 		// close the connection
-		return conn.Close()
+		conn.Close()
 	}
-	return fmt.Errorf("all servers crashed")
+	if crashCount > len(surfClient.MetaStoreAddrs)/2 {
+		return fmt.Errorf("more than half servers crashed")
+	}
+	print("crash count")
+	println(crashCount)
+
+	return nil
 }
 
 // This line guarantees all method for RPCClient are implemented
