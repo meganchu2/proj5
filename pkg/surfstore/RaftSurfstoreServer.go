@@ -228,8 +228,6 @@ func (s *RaftSurfstore) SendHeartbeat(ctx context.Context, _ *emptypb.Empty) (*S
             return nil, nil
         }
         client := NewRaftSurfstoreClient(conn)
-	
-        client := NewRaftSurfstoreClient(conn)
         client.isLeaderMutex.Lock()
         client.isLeader = false
         client.isLeaderMutex.Unlock()
