@@ -71,6 +71,9 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
     if !s.isLeader {
         return nil, ERR_NOT_LEADER
     }
+    if s.isCrashed {
+        return nil, ERR_SERVER_CRASHED
+    }
 	op := UpdateOperation{
         Term: s.term,
         FileMetaData: filemeta,
@@ -185,10 +188,6 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 
     if input.LeaderCommit == -2 { // just wanted to update leader
         return output, nil
-    }
-
-    if s.isCrashed {
-        return nil, ERR_SERVER_CRASHED
     }
     
     if input.Term >= s.term {
