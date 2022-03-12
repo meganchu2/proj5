@@ -139,7 +139,7 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 		v, err := c.UpdateFile(ctx, fileMetaData)	
 		if err != nil {
 			conn.Close()
-			return err
+			continue//return err
 		}
 		*latestVersion = v.Version
 
