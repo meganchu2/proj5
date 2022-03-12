@@ -71,7 +71,7 @@ func TestSyncTwoClientsSameFileLeaderFailure(t *testing.T) {
 		t.Fatalf("Could not load meta file for client1")
 	}
 	if len(fileMeta1) != 1 {
-		t.Fatalf("Wrong number of entries in client1 meta file")
+		t.Fatalf("Wrong number of entries in client1 meta file %d", len(fileMeta1))
 	}
 	if fileMeta1[file1].Version != 1 {
 		t.Fatalf("Wrong version for file1 in client1 metadata.")
@@ -98,7 +98,7 @@ func TestSyncTwoClientsSameFileLeaderFailure(t *testing.T) {
 	if len(fileMeta2) != 1 {
 		t.Fatalf("Wrong number of entries in client2 meta file")
 	}
-	if fileMeta1[file1].Version != 1 {
+	if fileMeta2[file1].Version != 1 {
 		t.Fatalf("Wrong version for file1 in client2 metadata.")
 	}
 

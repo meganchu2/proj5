@@ -3,7 +3,7 @@ package surfstore
 import (
 	context "context"
 	"time"
-	"fmt"
+	
 	grpc "google.golang.org/grpc"
 	//"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -96,9 +96,7 @@ func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileM
 	// panic("todo")
 	// connect to the server //surfClient.MetaStoreAddr, grpc.WithTransportCredentials(insecure.NewCredentials())?
 	println("getfileinfo")
-	crashCount := 0
 	for _, addr := range surfClient.MetaStoreAddrs {
-		println(addr)
 		conn, err := grpc.Dial(addr, grpc.WithInsecure())
 		if err != nil {
 			return err
@@ -114,20 +112,11 @@ func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileM
 			conn.Close()
 			return err
 		}
-		if mp == nil {
-			crashCount++
-			continue
-		}
 		*serverFileInfoMap = mp.FileInfoMap
 		
 		// close the connection
 		conn.Close()
 	}
-	if crashCount > len(surfClient.MetaStoreAddrs)/2 {
-		return fmt.Errorf("more than half servers crashed")
-	}
-	print("crash count")
-	println(crashCount)
 	return nil
 }
 
@@ -135,7 +124,7 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 	// panic("todo")
 	println("updatefile")
 	// connect to the server //surfClient.MetaStoreAddr, grpc.WithTransportCredentials(insecure.NewCredentials())
-	crashCount := 0
+	
 	for _, addr := range surfClient.MetaStoreAddrs {
 		conn, err := grpc.Dial(addr, grpc.WithInsecure())
 		if err != nil {
@@ -147,25 +136,16 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 		// perform the call
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-		v, err := c.UpdateFile(ctx, fileMetaData)		
+		v, err := c.UpdateFile(ctx, fileMetaData)	
 		if err != nil {
 			conn.Close()
 			return err
-		}
-		if v == nil {
-			crashCount++
-			continue
 		}
 		*latestVersion = v.Version
 
 		// close the connection
 		conn.Close()
 	}
-	if crashCount > len(surfClient.MetaStoreAddrs)/2 {
-		return fmt.Errorf("more than half servers crashed")
-	}
-	print("crash count")
-	println(crashCount)
 	return nil
 }
 
@@ -173,7 +153,7 @@ func (surfClient *RPCClient) GetBlockStoreAddr(blockStoreAddr *string) error {
 	// panic("todo")
 	// connect to the server //surfClient.MetaStoreAddr, grpc.WithTransportCredentials(insecure.NewCredentials())?
 	println("getblockstore")
-	crashCount := 0
+	
 	for _, addr := range surfClient.MetaStoreAddrs {
 		conn, err := grpc.Dial(addr, grpc.WithInsecure())
 		if err != nil {
@@ -191,22 +171,12 @@ func (surfClient *RPCClient) GetBlockStoreAddr(blockStoreAddr *string) error {
 			conn.Close()
 			return err
 		}
-		if addr == nil {
-			crashCount++
-			continue
-		}
 		*blockStoreAddr = addr.Addr
 
 		
 		// close the connection
 		conn.Close()
 	}
-	if crashCount > len(surfClient.MetaStoreAddrs)/2 {
-		return fmt.Errorf("more than half servers crashed")
-	}
-	print("crash count")
-	println(crashCount)
-
 	return nil
 }
 

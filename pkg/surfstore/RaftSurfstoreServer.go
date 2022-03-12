@@ -47,20 +47,12 @@ type RaftSurfstore struct {
 
 func (s *RaftSurfstore) GetFileInfoMap(ctx context.Context, empty *emptypb.Empty) (*FileInfoMap, error) {
 	//panic("todo")
-    if s.isCrashed {
-        return nil, nil
-    }
     return s.metaStore.GetFileInfoMap(ctx, empty)
 	//return nil, nil
 }
 
 func (s *RaftSurfstore) GetBlockStoreAddr(ctx context.Context, empty *emptypb.Empty) (*BlockStoreAddr, error) {
 	//panic("todo")
-    print("here")
-    println(s.serverId)
-    if s.isCrashed {
-        return nil, nil
-    }
     return s.metaStore.GetBlockStoreAddr(ctx, empty)
 	//return nil, nil
 }
@@ -69,10 +61,11 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 	//panic("todo")
 
 	///////////////////////////
-	///////////////////////////
-    if s.isCrashed {
-        return nil, ERR_SERVER_CRASHED
-    }
+	// ///////////////////////////
+    // if s.isCrashed {
+    //     return nil, ERR_SERVER_CRASHED
+    // }
+    println(s.serverId)
     if !s.isLeader {
         return nil, ERR_NOT_LEADER
     }
@@ -115,9 +108,7 @@ func (s *RaftSurfstore) attemptCommit() {
         commit := <-commitChan
         if commit != nil && commit.Success {
             commitCount++
-        } else {
-            crashCount++
-        }
+        } 
         if commitCount > len(s.ipList) / 2 {
             s.pendingCommits[targetIdx] <- true
             s.commitIndex = targetIdx
@@ -128,6 +119,8 @@ func (s *RaftSurfstore) attemptCommit() {
             break
         }
     }
+    print("crashcount")
+    println(crashCount)
 }
 
 
@@ -193,6 +186,10 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
     if input.LeaderCommit == -2 { // just wanted to update leader
         return output, nil
     }
+
+    if s.isCrashed {
+        return nil, ERR_SERVER_CRASHED
+    }
     
     if input.Term >= s.term {
         s.term = input.Term
@@ -230,11 +227,12 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
     if input.LeaderCommit > s.commitIndex {
         s.commitIndex = int64(math.Min(float64(input.LeaderCommit), float64(len(s.log) - 1)))
     }
-    //println(s.serverId)
-    //println(s.lastApplied)
-    //println(s.commitIndex)
-    //println(len(s.log))
-    //println(len(input.Entries))
+    println("here")
+    println(s.serverId)
+    println(s.lastApplied)
+    println(s.commitIndex)
+    println(len(s.log))
+    println(len(input.Entries))
     for s.lastApplied < s.commitIndex {
         s.lastApplied++
         entry := s.log[s.lastApplied]
