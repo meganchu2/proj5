@@ -267,6 +267,18 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
     }
     //4. Append any new entries not already in the log
     s.log = append(s.log, input.Entries[k:]...)
+    print(s.serverId)
+    println(" LOGS ")
+    for i, entry := range s.log {
+        print("index: ")
+        print(i)
+        print(", term: ")
+        print(entry.Term)
+        print(", file: ")
+        println(entry.FileMetaData.Filename)
+        print(", version: ")
+        println(entry.FileMetaData.Version)
+    }
     //5. If leaderCommit > commitIndex, set commitIndex = min(leaderCommit, index
     //of last new entry)
     // TODO only do this if leaderCommit > commitIndex
