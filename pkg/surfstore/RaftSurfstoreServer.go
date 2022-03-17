@@ -158,14 +158,14 @@ func (s *RaftSurfstore) attemptCommit() {
         // TODO handle crashed nodes
         commit := <-commitChan
         if commit != nil && commit.Success {
+            //println("here1")
             commitCount++
         } 
         if commitCount > len(s.ipList) / 2 {
-            println("here1")
             s.pendingCommits[len(s.pendingCommits)-1] <- true
-            println("here2")
+            //println("here2")
             s.commitIndex = targetIdx
-            //break
+            break
         }
     }
 }
