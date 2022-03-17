@@ -35,8 +35,6 @@ func (m *MetaStore) UpdateFile(ctx context.Context, fileMetaData *FileMetaData) 
 		m.FileMetaMap[key] = fileMetaData
 		temp.Version = newVersion
 	}
-	print("version returned")
-	println(temp.Version)
 	// fmt.Println(m.FileMetaMap[key])
 	return &temp, nil
 }

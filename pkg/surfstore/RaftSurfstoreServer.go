@@ -161,8 +161,9 @@ func (s *RaftSurfstore) attemptCommit() {
             commitCount++
         } 
         if commitCount > len(s.ipList) / 2 {
+            println("here1")
             s.pendingCommits[len(s.pendingCommits)-1] <- true
-            
+            println("here2")
             s.commitIndex = targetIdx
             //break
         }
