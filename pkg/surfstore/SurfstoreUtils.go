@@ -8,11 +8,11 @@ import (
 	"io"
 	"errors"
 	"reflect"
-	"strconv"
-	grpc "google.golang.org/grpc"
-	"context"
-	"google.golang.org/protobuf/types/known/emptypb"
-	"time"
+	//"strconv"
+	//grpc "google.golang.org/grpc"
+	// "context"
+	// "google.golang.org/protobuf/types/known/emptypb"
+	// "time"
 )
 
 func GenerateIndex(client *RPCClient, m map[string]*FileMetaData) map[string]*FileMetaData {
@@ -189,17 +189,17 @@ func ClientSync(client RPCClient) {
 	// panic("todo")
 
 	// don't do anything if client server crashed
-	server,_ := strconv.Atoi(client.BaseDir[4:])
-	conn1, err1 := grpc.Dial(client.MetaStoreAddrs[server], grpc.WithInsecure())
-	if err1 != nil {
-		return
-	}
-	c1 := NewRaftSurfstoreClient(conn1)
-	ctx1, cancel1 := context.WithTimeout(context.Background(), time.Second)
-	defer cancel1()
-	if state, _ := c1.IsCrashed(ctx1, &emptypb.Empty{}); state.IsCrashed {
-		return // don't sync if client is crashed
-	}
+	// server,_ := strconv.Atoi(client.BaseDir[4:])
+	// conn1, err1 := grpc.Dial(client.MetaStoreAddrs[server], grpc.WithInsecure())
+	// if err1 != nil {
+	// 	return
+	// }
+	// c1 := NewRaftSurfstoreClient(conn1)
+	// ctx1, cancel1 := context.WithTimeout(context.Background(), time.Second)
+	// defer cancel1()
+	// if state, _ := c1.IsCrashed(ctx1, &emptypb.Empty{}); state.IsCrashed {
+	// 	return // don't sync if client is crashed
+	// }
 
 
 	// get local file meta map
