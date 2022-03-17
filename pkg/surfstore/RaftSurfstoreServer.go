@@ -275,7 +275,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
         print(", term: ")
         print(entry.Term)
         print(", file: ")
-        println(entry.FileMetaData.Filename)
+        print(entry.FileMetaData.Filename)
         print(", version: ")
         println(entry.FileMetaData.Version)
     }
