@@ -284,7 +284,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
     }
     //4. Append any new entries not already in the log
     s.log = append(s.log, input.Entries[k:]...)
-    println("LOGS",s.serverId)
+    println("LOGS", s.serverId)
     for i, entry := range s.log {
         println("index:",i,", term:",entry.Term,", file:",entry.FileMetaData.Filename,", version: ",entry.FileMetaData.Version)
     }
@@ -323,8 +323,8 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
         return &Success{Flag: false}, ERR_SERVER_CRASHED
     }
 
-    print("leader set to ")
-    println(s.serverId)
+    print("leader set to",s.serverId)    
+    s.term++
 
     // call appendentries to set isLeader to false    
     for idx, addr := range s.ipList {
@@ -365,11 +365,9 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
         println("committed index",s.lastApplied, "for server", s.serverId)
         
     }
-
     s.isLeaderMutex.Lock()
     s.isLeader = true
 	s.isLeaderMutex.Unlock()
-    s.term++
 
 	return &Success{Flag: true}, nil
     /////////////////////////////
@@ -452,8 +450,7 @@ func (s *RaftSurfstore) Crash(ctx context.Context, _ *emptypb.Empty) (*Success, 
 	s.isCrashedMutex.Lock()
 	s.isCrashed = true
 	s.isCrashedMutex.Unlock()
-    print(s.serverId)
-    println("crashed")
+    println(s.serverId, "crashed")
 
 	return &Success{Flag: true}, nil
 }
@@ -463,8 +460,7 @@ func (s *RaftSurfstore) Restore(ctx context.Context, _ *emptypb.Empty) (*Success
 	s.isCrashed = false
 	s.notCrashedCond.Broadcast()
 	s.isCrashedMutex.Unlock()
-    print(s.serverId)
-    println("restored")
+    println(s.serverId, "restored")
 
 	return &Success{Flag: true}, nil
 }
