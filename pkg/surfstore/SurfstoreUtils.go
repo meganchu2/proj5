@@ -173,9 +173,6 @@ func Download(client *RPCClient, blockStoreAddr string) {
 				temp := Block{}
 				client.GetBlock(val, blockStoreAddr, &temp)
 				f.Write(temp.BlockData[:temp.BlockSize])
-				//println(string(temp.BlockData))
-				//println(string(temp.BlockData[:temp.BlockSize]))
-				println(temp.BlockSize)
 			}
 			f.Close()
 		}
