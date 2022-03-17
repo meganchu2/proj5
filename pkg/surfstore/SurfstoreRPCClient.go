@@ -136,7 +136,7 @@ func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileM
 		conn.Close()
 	}
 	if leaderFound {
-		println("leader found")
+		//println("leader found")
 	}
 	return nil
 }
@@ -202,7 +202,7 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 		return ERR_SERVER_CRASHED // majority of servers crashed
 	}
 	if leaderFound {
-		println("leader found")	
+		//println("leader found")	
 	}
 	return nil
 }
@@ -250,7 +250,7 @@ func (surfClient *RPCClient) GetBlockStoreAddr(blockStoreAddr *string) error {
 		conn.Close()
 	}
 	if leaderFound {
-		println("leader found")
+		//println("leader found")
 	}
 	return nil
 }
