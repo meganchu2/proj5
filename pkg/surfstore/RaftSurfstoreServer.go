@@ -161,7 +161,9 @@ func (s *RaftSurfstore) attemptCommit() {
             commitCount++
         } 
         if commitCount > len(s.ipList) / 2 {
-            s.pendingCommits[targetIdx] <- true
+            print("herex")
+            s.pendingCommits[len(s.pendingCommits)-1] <- true
+            print("herey")
             s.commitIndex = targetIdx
             //break
         }
@@ -184,7 +186,7 @@ func (s *RaftSurfstore) commitEntry(serverIdx, entryIdx int64, commitChan chan *
             PrevLogTerm: -1,
             PrevLogIndex: -1,
             Entries: s.log[:entryIdx+1],
-            LeaderCommit: s.commitIndex,
+            LeaderCommit: entryIdx,//s.commitIndex,
         }   
         if entryIdx > 0 {
             input.PrevLogTerm = s.log[entryIdx - 1].Term
@@ -246,12 +248,12 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
     if input.Term < s.term {
         return output, nil
     }
-
+    print("here1")
     //2. Reply false if log doesn’t contain an entry at prevLogIndex whose term
     if input.PrevLogIndex >= 0 && (int64(len(s.log)) <= input.PrevLogIndex || s.log[input.PrevLogIndex].Term != input.PrevLogTerm) {
         return output, nil
     }
-    
+    print("here2")
     //3. If an existing entry conflicts with a new one (same index but different
     //terms), delete the existing entry and all that follow it (§5.3)
     k := 0
@@ -265,19 +267,20 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
         }
         k++
     }
-
+    print("here3")
     //4. Append any new entries not already in the log
     s.log = append(s.log, input.Entries[k:]...)
+    print("here4")
     //5. If leaderCommit > commitIndex, set commitIndex = min(leaderCommit, index
     //of last new entry)
     // TODO only do this if leaderCommit > commitIndex
     if input.LeaderCommit > s.commitIndex {
         s.commitIndex = int64(math.Min(float64(input.LeaderCommit), float64(len(s.log) - 1)))
     }
-    // println("here")
+    print("here5")
     // println(s.serverId)
     // println(s.lastApplied)
-    // println(s.commitIndex)
+    // print(s.commitIndex)
     // println(len(s.log))
     // println(len(input.Entries))
     for s.lastApplied < s.commitIndex {
@@ -286,6 +289,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
         s.metaStore.UpdateFile(ctx, entry.FileMetaData)
         println("updated server", s.serverId)
     }
+    print("here6")
 
     output.Success = true
     
@@ -299,10 +303,16 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
 	
     //////////////////////////
     ///////////////////////////
+    if s.isCrashed {
+        return &Success{Flag: false}, ERR_SERVER_CRASHED
+    }
+
     s.isLeaderMutex.Lock()
     s.isLeader = true
 	s.isLeaderMutex.Unlock()
     s.term++
+    print("leader set to")
+    println(s.serverId)
 
     // call appendentries to set isLeader to false
     for idx, addr := range s.ipList {
@@ -393,6 +403,8 @@ func (s *RaftSurfstore) Crash(ctx context.Context, _ *emptypb.Empty) (*Success, 
 	s.isCrashedMutex.Lock()
 	s.isCrashed = true
 	s.isCrashedMutex.Unlock()
+    print(s.serverId)
+    println("crashed")
 
 	return &Success{Flag: true}, nil
 }
@@ -402,6 +414,8 @@ func (s *RaftSurfstore) Restore(ctx context.Context, _ *emptypb.Empty) (*Success
 	s.isCrashed = false
 	s.notCrashedCond.Broadcast()
 	s.isCrashedMutex.Unlock()
+    print(s.serverId)
+    println("restored")
 
 	return &Success{Flag: true}, nil
 }
