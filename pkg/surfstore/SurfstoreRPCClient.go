@@ -189,7 +189,8 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 				return err
 			}
 		} else {
-			leaderFound = true			
+			leaderFound = true	
+			*latestVersion = v.Version			
 		}
 
 		// close the connection
@@ -199,8 +200,7 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 		return ERR_SERVER_CRASHED // majority of servers crashed
 	}
 	if leaderFound {
-		println("leader found")
-		*latestVersion = v.Version		
+		println("leader found")	
 	}
 	return nil
 }
