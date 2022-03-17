@@ -133,6 +133,7 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
     go s.attemptCommit()
 
     success := <-committed
+    print("success")
     if success {
         println("Leader updated server", s.serverId)
         return s.metaStore.UpdateFile(ctx, filemeta)
@@ -201,6 +202,7 @@ func (s *RaftSurfstore) commitEntry(serverIdx, entryIdx int64, commitChan chan *
             return
         }
         if !output.Success {
+            println("no success append entries")
             commitChan <- nil
             return
         }
