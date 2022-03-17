@@ -229,10 +229,10 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
         MatchedIndex: -1,
     }
 
-    if s.isCrashed{ // don't update
-        print("not updating")
-        println(s.serverId)
-        return output, nil
+    for s.isCrashed{ // don't update until recovered
+        //print("not updating")
+        //println(s.serverId)
+        //return output, nil
     }
 
     if input.LeaderCommit == -2 { // just wanted to update leader
