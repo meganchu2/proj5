@@ -52,8 +52,7 @@ func (s *RaftSurfstore) GetFileInfoMap(ctx context.Context, empty *emptypb.Empty
     } else if s.isCrashed { // leader but crashed
         return nil, ERR_SERVER_CRASHED
     }
-    // print("leader is ")
-    // println(s.serverId)
+
     // consult majority of servers
     notCrashed := 1
     for notCrashed <= len(s.ipList) / 2 {
@@ -68,8 +67,6 @@ func (s *RaftSurfstore) GetFileInfoMap(ctx context.Context, empty *emptypb.Empty
             }
             client := NewRaftSurfstoreClient(conn)
             if state, _ := client.IsCrashed(ctx, empty); !state.IsCrashed {
-                // print(idx)
-                // println("not crashed")
                 notCrashed++
             }
         }
@@ -85,8 +82,7 @@ func (s *RaftSurfstore) GetBlockStoreAddr(ctx context.Context, empty *emptypb.Em
     } else if s.isCrashed { // leader but crashed
         return nil, ERR_SERVER_CRASHED
     }
-    // print("leader is ")
-    // println(s.serverId)
+
     // consult majority of servers
     notCrashed := 1
     for notCrashed <= len(s.ipList) / 2 {
@@ -101,8 +97,6 @@ func (s *RaftSurfstore) GetBlockStoreAddr(ctx context.Context, empty *emptypb.Em
             }
             client := NewRaftSurfstoreClient(conn)
             if state, _ := client.IsCrashed(ctx, empty); !state.IsCrashed {
-                // print(idx)
-                // println("not crashed")
                 notCrashed++
             }
         }
@@ -126,16 +120,18 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
         FileMetaData: filemeta,
     }
 
-    s.log = append(s.log, &op)
+    s.log = append(s.log, &op)    
     committed := make(chan bool)
     s.pendingCommits = append(s.pendingCommits, committed)
+    print("length of pendingCommits in server",s.serverId)
+    print(": ")
+    println(len(s.pendingCommits))
 
     go s.attemptCommit()
 
     success := <-committed
-    print("success")
     if success {
-        println("Leader updated server", s.serverId)
+        println("Leader updated server ", s.serverId)
         return s.metaStore.UpdateFile(ctx, filemeta)
     }
 	///////////////////////////
@@ -146,6 +142,7 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 
 func (s *RaftSurfstore) attemptCommit() {
     targetIdx := s.commitIndex + 1
+    commitsIdx := len(s.pendingCommits) - 1
     commitChan := make(chan *AppendEntryOutput, len(s.ipList))
     for idx, _ := range s.ipList {
         if int64(idx) == s.serverId {
@@ -163,7 +160,7 @@ func (s *RaftSurfstore) attemptCommit() {
             commitCount++
         } 
         if commitCount > len(s.ipList) / 2 {
-            s.pendingCommits[len(s.pendingCommits)-1] <- true
+            s.pendingCommits[commitsIdx] <- true//len(s.pendingCommits)-1] <- true
             //println("here2")
             s.commitIndex = targetIdx
             break
