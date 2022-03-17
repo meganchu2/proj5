@@ -421,7 +421,9 @@ func (s *RaftSurfstore) IsCrashed(ctx context.Context, _ *emptypb.Empty) (*Crash
 }
 
 func (s *RaftSurfstore) GetInternalState(ctx context.Context, empty *emptypb.Empty) (*RaftInternalState, error) {
-	fileInfoMap, _ := s.metaStore.GetFileInfoMap(ctx, empty)
+	println("getting internal state")
+    fileInfoMap, _ := s.metaStore.GetFileInfoMap(ctx, empty)
+    println("obtained internal state")
 	return &RaftInternalState{
 		IsLeader: s.isLeader,
 		Term:     s.term,
