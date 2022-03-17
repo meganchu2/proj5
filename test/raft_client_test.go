@@ -4,6 +4,7 @@ import (
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	"os"
 	"testing"
+	"io/ioutil"
 	//	"time"
 )
 
@@ -82,6 +83,8 @@ func TestSyncTwoClientsSameFileLeaderFailure(t *testing.T) {
 		t.Fatalf("Could not read files in client base dirs.")
 	}
 	if !c {
+		f, _ := ioutil.ReadFile(workingDir+"/test0/multi_file1.txt")
+		println(string(f))
 		t.Fatalf("file1 should not change at client1")
 	}
 

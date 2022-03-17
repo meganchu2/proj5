@@ -8,6 +8,11 @@ import (
 	"io"
 	"errors"
 	"reflect"
+	"strconv"
+	grpc "google.golang.org/grpc"
+	"context"
+	"google.golang.org/protobuf/types/known/emptypb"
+	"time"
 )
 
 func GenerateIndex(client *RPCClient, m map[string]*FileMetaData) map[string]*FileMetaData {
@@ -102,6 +107,7 @@ func UpdateIndex(client *RPCClient, m map[string]*FileMetaData) map[string]*File
 }
 
 func Upload(client *RPCClient, m map[string]*FileMetaData, blockStoreAddr string) {
+	// don't make change if client crashed
 
 	var mClient map[string]*FileMetaData
 	client.GetFileInfoMap(&mClient)
@@ -130,10 +136,6 @@ func Upload(client *RPCClient, m map[string]*FileMetaData, blockStoreAddr string
 						}
 						break
 					}
-					// if bytes != client.BlockSize {
-						// println(int32(bytes))
-						// println(buf[:bytes])
-					// }
 					temp := Block {
 						BlockData: buf,
 						BlockSize: int32(bytes),
@@ -149,6 +151,8 @@ func Upload(client *RPCClient, m map[string]*FileMetaData, blockStoreAddr string
 
 // update blocks
 func Download(client *RPCClient, blockStoreAddr string) {
+	// don't make change if client crashed
+
 	var mClient map[string]*FileMetaData
 	client.GetFileInfoMap(&mClient)
 	//PrintMetaMap(mClient)
@@ -168,16 +172,36 @@ func Download(client *RPCClient, blockStoreAddr string) {
 			for _, val := range metadata.BlockHashList {
 				temp := Block{}
 				client.GetBlock(val, blockStoreAddr, &temp)
-				f.Write(temp.BlockData)
+				f.Write(temp.BlockData[:temp.BlockSize])
+				//println(string(temp.BlockData))
+				//println(string(temp.BlockData[:temp.BlockSize]))
+				println(temp.BlockSize)
 			}
 			f.Close()
 		}
 	}
 }
 
+
+
 // Implement the logic for a client syncing with the server here.
 func ClientSync(client RPCClient) {
 	// panic("todo")
+
+	// don't do anything if client server crashed
+	server,_ := strconv.Atoi(client.BaseDir[4:])
+	conn1, err1 := grpc.Dial(client.MetaStoreAddrs[server], grpc.WithInsecure())
+	if err1 != nil {
+		return
+	}
+	c1 := NewRaftSurfstoreClient(conn1)
+	ctx1, cancel1 := context.WithTimeout(context.Background(), time.Second)
+	defer cancel1()
+	if state, _ := c1.IsCrashed(ctx1, &emptypb.Empty{}); state.IsCrashed {
+		return // don't sync if client is crashed
+	}
+
+
 	// get local file meta map
 	//m := make(map[string]*FileMetaData)
 	m2 := make(map[string]*FileMetaData)

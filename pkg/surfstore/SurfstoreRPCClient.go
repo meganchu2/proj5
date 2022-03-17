@@ -3,7 +3,8 @@ package surfstore
 import (
 	context "context"
 	"time"
-	
+	"errors"
+	"strings"
 	grpc "google.golang.org/grpc"
 	//"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -92,39 +93,72 @@ func (surfClient *RPCClient) HasBlocks(blockHashesIn []string, blockStoreAddr st
 
 
 
+
+
+
 func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileMetaData) error {
 	// panic("todo")
 	// connect to the server //surfClient.MetaStoreAddr, grpc.WithTransportCredentials(insecure.NewCredentials())?
-	println("getfileinfo")
+	println("\nGETFILEINFO")
+	leaderFound := false
 	for _, addr := range surfClient.MetaStoreAddrs {
 		conn, err := grpc.Dial(addr, grpc.WithInsecure())
 		if err != nil {
 			return err
 		}
 		c := NewRaftSurfstoreClient(conn)
-		// c := NewMetaStoreClient(conn)// NewMetaStoreClient(conn)?
 
 		// perform the call
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		mp, err := c.GetFileInfoMap(ctx, &emptypb.Empty{})
 		if err != nil {
-			conn.Close()
-			return err
+			if errors.Is(err, context.DeadlineExceeded) {
+				println("deadline exceeded")	
+			} else if strings.Contains(err.Error(), "not the leader") {
+				println("not leader")
+				continue	
+			} else if strings.Contains(err.Error(), "is crashed.") { // leader but crashed
+				conn.Close()
+				return err
+			} else {
+				conn.Close()
+				return err
+			}
+		} else {
+			leaderFound = true			
+			println(len(mp.FileInfoMap))
+			*serverFileInfoMap = mp.FileInfoMap
+			break
 		}
-		*serverFileInfoMap = mp.FileInfoMap
 		
 		// close the connection
 		conn.Close()
+	}
+	if leaderFound {
+		println("leader found")
 	}
 	return nil
 }
 
 func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersion *int32) error {
 	// panic("todo")
-	println("updatefile")
-	// connect to the server //surfClient.MetaStoreAddr, grpc.WithTransportCredentials(insecure.NewCredentials())
-	
+	println("\nUPDATEFILE")
+
+	// crashed server cannot update file	
+	// server := strconv.Atoi(surfClient.BaseDir[4:])
+	// conn1, err1 := grpc.Dial(surfClient.MetaStoreAddrs[server], grpc.WithInsecure())
+	// if err1 != nil {
+	// 	return err1
+	// }
+	// c1 := NewRaftSurfstoreClient(conn)
+	// ctx1, cancel1 := context.WithTimeout(context.Background(), time.Second)
+	// defer cancel1()
+	// if state, _ := c1.IsCrashed(ctx1, &emptypb.Empty{}); state.IsCrashed {
+	// 	return nil // don't sync if client is crashed
+	// }
+
+	leaderFound := false
 	for _, addr := range surfClient.MetaStoreAddrs {
 		conn, err := grpc.Dial(addr, grpc.WithInsecure())
 		if err != nil {
@@ -138,13 +172,29 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 		defer cancel()
 		v, err := c.UpdateFile(ctx, fileMetaData)	
 		if err != nil {
-			conn.Close()
-			continue//return err
+			if errors.Is(err, context.DeadlineExceeded) {
+				println("deadline exceeded")	
+			} else if strings.Contains(err.Error(), "not the leader") {
+				println("not leader")
+				continue	
+			} else if strings.Contains(err.Error(), "is crashed.") { // leader but crashed
+				conn.Close()
+				return err
+			} else {
+				conn.Close()
+				return err
+			}
+		} else {
+			leaderFound = true			
+			*latestVersion = v.Version
+			break
 		}
-		*latestVersion = v.Version
 
 		// close the connection
 		conn.Close()
+	}
+	if leaderFound {
+		println("leader found")
 	}
 	return nil
 }
@@ -152,8 +202,9 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 func (surfClient *RPCClient) GetBlockStoreAddr(blockStoreAddr *string) error {
 	// panic("todo")
 	// connect to the server //surfClient.MetaStoreAddr, grpc.WithTransportCredentials(insecure.NewCredentials())?
-	println("getblockstore")
+	println("\nGETBLOCKSTORE")
 	
+	leaderFound := false
 	for _, addr := range surfClient.MetaStoreAddrs {
 		conn, err := grpc.Dial(addr, grpc.WithInsecure())
 		if err != nil {
@@ -168,14 +219,30 @@ func (surfClient *RPCClient) GetBlockStoreAddr(blockStoreAddr *string) error {
 		temp := emptypb.Empty{}
 		addr, err := c.GetBlockStoreAddr(ctx, &temp)
 		if err != nil {
-			conn.Close()
-			return err
+			if errors.Is(err, context.DeadlineExceeded) {
+				println("deadline exceeded")	
+			} else if strings.Contains(err.Error(), "not the leader") {
+				println("not leader")
+				continue	
+			} else if strings.Contains(err.Error(), "is crashed.") { // leader but crashed
+				conn.Close()
+				return err
+			} else {
+				conn.Close()
+				return err
+			}
+		} else {
+			leaderFound = true			
+			*blockStoreAddr = addr.Addr
+			break
 		}
-		*blockStoreAddr = addr.Addr
 
 		
 		// close the connection
 		conn.Close()
+	}
+	if leaderFound {
+		println("leader found")
 	}
 	return nil
 }
