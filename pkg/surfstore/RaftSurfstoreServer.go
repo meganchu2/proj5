@@ -153,12 +153,10 @@ func (s *RaftSurfstore) attemptCommit() {
         // TODO handle crashed nodes
         commit := <-commitChan
         if commit != nil && commit.Success {
-            //println("here1")
             commitCount++
         } 
         if commitCount > len(s.ipList) / 2 {
             s.pendingCommits[commitsIdx] <- true//len(s.pendingCommits)-1] <- true
-            //println("here2")
             s.commitIndex = targetIdx
             break
         }
@@ -190,6 +188,10 @@ func (s *RaftSurfstore) commitEntry(serverIdx, entryIdx int64, commitChan chan *
         
         ctx, cancel := context.WithTimeout(context.Background(), time.Second)
         defer cancel()
+        state,_:=client.IsCrashed(ctx,&emptypb.Empty{})
+        for state.IsCrashed {
+            state,_=client.IsCrashed(ctx,&emptypb.Empty{})
+        } // wait until server recovered to append
         output, _ := client.AppendEntries(ctx, input)
         
         if output == nil || !output.Success {
@@ -226,9 +228,8 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
         MatchedIndex: -1,
     }
 
-    for s.isCrashed{ // don't update until recovered
-
-    }
+    // for s.isCrashed{ // don't update until recovered
+    // }
 
     if input.LeaderCommit == -2 { // just wanted to update leader
         return output, nil
@@ -261,17 +262,9 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
     }
     //4. Append any new entries not already in the log
     s.log = append(s.log, input.Entries[k:]...)
-    print(s.serverId)
-    println(" LOGS ")
+    println("LOGS",s.serverId)
     for i, entry := range s.log {
-        print("index: ")
-        print(i)
-        print(", term: ")
-        print(entry.Term)
-        print(", file: ")
-        print(entry.FileMetaData.Filename)
-        print(", version: ")
-        println(entry.FileMetaData.Version)
+        println("index:",i,", term:",entry.Term,", file:",entry.FileMetaData.Filename,", version: ",entry.FileMetaData.Version)
     }
     //5. If leaderCommit > commitIndex, set commitIndex = min(leaderCommit, index
     //of last new entry)
