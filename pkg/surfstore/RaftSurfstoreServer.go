@@ -188,20 +188,24 @@ func (s *RaftSurfstore) commitEntry(serverIdx, entryIdx int64, commitChan chan *
         
         ctx, cancel := context.WithTimeout(context.Background(), time.Second)
         defer cancel()
+
         state,_:=client.IsCrashed(ctx,&emptypb.Empty{})
-        for state.IsCrashed {
+        for state == nil || state.IsCrashed {
             state,_=client.IsCrashed(ctx,&emptypb.Empty{})
         } // wait until server recovered to append
-        output, _ := client.AppendEntries(ctx, input)
+
+        if s.isLeader && !s.isCrashed { // leader not crashed yet
+            output, _ := client.AppendEntries(ctx, input)
+            if output == nil || !output.Success {
+                commitChan <- nil
+                return
+            }
+            if output.Success {
+                commitChan <- output
+                return
+            }
+        }        
         
-        if output == nil || !output.Success {
-            commitChan <- nil
-            return
-        }
-        if output.Success {
-            commitChan <- output
-            return
-        }
         // TODO update state. s.nextIndex, etc
 
         // TODO handle crashed/ non success cases
