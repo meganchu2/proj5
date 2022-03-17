@@ -197,17 +197,13 @@ func (s *RaftSurfstore) commitEntry(serverIdx, entryIdx int64, commitChan chan *
         ctx, cancel := context.WithTimeout(context.Background(), time.Second)
         defer cancel()
         output, _ := client.AppendEntries(ctx, input)
-        println("appendentries complete for server")
         
         if output == nil || !output.Success {
-            println("no success append entries")
             commitChan <- nil
-            println("channel committed")
             return
         }
         if output.Success {
             commitChan <- output
-            println("channel committed")
             return
         }
         // TODO update state. s.nextIndex, etc
@@ -237,9 +233,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
     }
 
     for s.isCrashed{ // don't update until recovered
-        //print("not updating")
-        //println(s.serverId)
-        //return output, nil
+
     }
 
     if input.LeaderCommit == -2 { // just wanted to update leader
@@ -311,7 +305,7 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
     s.isLeader = true
 	s.isLeaderMutex.Unlock()
     s.term++
-    print("leader set to")
+    print("leader set to ")
     println(s.serverId)
 
     // call appendentries to set isLeader to false
@@ -425,10 +419,8 @@ func (s *RaftSurfstore) IsCrashed(ctx context.Context, _ *emptypb.Empty) (*Crash
 }
 
 func (s *RaftSurfstore) GetInternalState(ctx context.Context, empty *emptypb.Empty) (*RaftInternalState, error) {
-	println("getting internal state")
     fileInfoMap, _ := s.metaStore.GetFileInfoMap(ctx, empty)
-    println("obtained internal state")
-	return &RaftInternalState{
+    return &RaftInternalState{
 		IsLeader: s.isLeader,
 		Term:     s.term,
 		Log:      s.log,
