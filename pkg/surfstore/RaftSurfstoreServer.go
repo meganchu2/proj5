@@ -123,9 +123,6 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
     s.log = append(s.log, &op)    
     committed := make(chan bool)
     s.pendingCommits = append(s.pendingCommits, committed)
-    print("length of pendingCommits in server",s.serverId)
-    print(": ")
-    println(len(s.pendingCommits))
 
     go s.attemptCommit()
 
