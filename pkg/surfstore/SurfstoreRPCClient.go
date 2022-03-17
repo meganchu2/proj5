@@ -159,6 +159,7 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 	// }
 
 	leaderFound := false
+	crashCount := 0
 	for _, addr := range surfClient.MetaStoreAddrs {
 		conn, err := grpc.Dial(addr, grpc.WithInsecure())
 		if err != nil {
@@ -176,6 +177,9 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 				println("deadline exceeded")	
 			} else if strings.Contains(err.Error(), "not the leader") {
 				println("not leader")
+				if state, _:=c.IsCrashed(ctx, &emptypb.Empty{}); state.IsCrashed {
+					crashCount++
+				}
 				continue	
 			} else if strings.Contains(err.Error(), "is crashed.") { // leader but crashed
 				conn.Close()
@@ -186,15 +190,17 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 			}
 		} else {
 			leaderFound = true			
-			*latestVersion = v.Version
-			break
 		}
 
 		// close the connection
 		conn.Close()
 	}
+	if crashCount > len(surfClient.MetaStoreAddrs) / 2 {
+		return ERR_SERVER_CRASHED // majority of servers crashed
+	}
 	if leaderFound {
 		println("leader found")
+		*latestVersion = v.Version		
 	}
 	return nil
 }
