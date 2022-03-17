@@ -161,9 +161,8 @@ func (s *RaftSurfstore) attemptCommit() {
             commitCount++
         } 
         if commitCount > len(s.ipList) / 2 {
-            print("herex")
             s.pendingCommits[len(s.pendingCommits)-1] <- true
-            print("herey")
+            
             s.commitIndex = targetIdx
             //break
         }
@@ -248,12 +247,10 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
     if input.Term < s.term {
         return output, nil
     }
-    print("here1")
     //2. Reply false if log doesn’t contain an entry at prevLogIndex whose term
     if input.PrevLogIndex >= 0 && (int64(len(s.log)) <= input.PrevLogIndex || s.log[input.PrevLogIndex].Term != input.PrevLogTerm) {
         return output, nil
     }
-    print("here2")
     //3. If an existing entry conflicts with a new one (same index but different
     //terms), delete the existing entry and all that follow it (§5.3)
     k := 0
@@ -267,17 +264,14 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
         }
         k++
     }
-    print("here3")
     //4. Append any new entries not already in the log
     s.log = append(s.log, input.Entries[k:]...)
-    print("here4")
     //5. If leaderCommit > commitIndex, set commitIndex = min(leaderCommit, index
     //of last new entry)
     // TODO only do this if leaderCommit > commitIndex
     if input.LeaderCommit > s.commitIndex {
         s.commitIndex = int64(math.Min(float64(input.LeaderCommit), float64(len(s.log) - 1)))
     }
-    print("here5")
     // println(s.serverId)
     // println(s.lastApplied)
     // print(s.commitIndex)
@@ -289,7 +283,6 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
         s.metaStore.UpdateFile(ctx, entry.FileMetaData)
         println("updated server", s.serverId)
     }
-    print("here6")
 
     output.Success = true
     
