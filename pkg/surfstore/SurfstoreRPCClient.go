@@ -196,6 +196,8 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 		// close the connection
 		conn.Close()
 	}
+	print("crashCount")
+	println(crashCount)
 	if crashCount > len(surfClient.MetaStoreAddrs) / 2 {
 		return ERR_SERVER_CRASHED // majority of servers crashed
 	}
