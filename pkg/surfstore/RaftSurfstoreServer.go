@@ -141,7 +141,7 @@ func (s *RaftSurfstore) UpdateFile(ctx context.Context, filemeta *FileMetaData) 
 	///////////////////////////
 	///////////////////////////
 
-	return nil, nil
+	return &Version{}, ERR_SERVER_CRASHED // not enough servers so fail
 }
 
 func (s *RaftSurfstore) attemptCommit() {
