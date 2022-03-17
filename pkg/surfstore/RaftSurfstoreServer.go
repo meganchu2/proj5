@@ -197,13 +197,16 @@ func (s *RaftSurfstore) commitEntry(serverIdx, entryIdx int64, commitChan chan *
         ctx, cancel := context.WithTimeout(context.Background(), time.Second)
         defer cancel()
         output, _ := client.AppendEntries(ctx, input)
+        print("appendentries complete for server")
         if output.Success {
             commitChan <- output
+            println("channel committed")
             return
         }
         if !output.Success {
             println("no success append entries")
             commitChan <- nil
+            println("channel committed")
             return
         }
         // TODO update state. s.nextIndex, etc
