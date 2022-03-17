@@ -313,8 +313,7 @@ func (s *RaftSurfstore) SetLeader(ctx context.Context, _ *emptypb.Empty) (*Succe
     s.isLeader = true
 	s.isLeaderMutex.Unlock()
     s.term++
-    print("leader set to ")
-    println(s.serverId)
+    println("leader set to ",s.serverId)
 
     // call appendentries to set isLeader to false
     for idx, addr := range s.ipList {
@@ -405,8 +404,7 @@ func (s *RaftSurfstore) Crash(ctx context.Context, _ *emptypb.Empty) (*Success, 
 	s.isCrashedMutex.Lock()
 	s.isCrashed = true
 	s.isCrashedMutex.Unlock()
-    print(s.serverId)
-    println("crashed")
+    println(s.serverId,"crashed")
 
 	return &Success{Flag: true}, nil
 }
@@ -416,8 +414,7 @@ func (s *RaftSurfstore) Restore(ctx context.Context, _ *emptypb.Empty) (*Success
 	s.isCrashed = false
 	s.notCrashedCond.Broadcast()
 	s.isCrashedMutex.Unlock()
-    print(s.serverId)
-    println("restored")
+    println(s.serverId, "restored")
 
 	return &Success{Flag: true}, nil
 }
