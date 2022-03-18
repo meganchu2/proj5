@@ -197,22 +197,19 @@ func (s *RaftSurfstore) commitEntry(serverIdx, entryIdx int64, commitChan chan *
         // //println("recovered",serverIdx,"appending entries")
         
         //println(serverIdx,"state:",state.IsCrashed)
-        if s.isLeader && !s.isCrashed { // leader not crashed yet
-            output, _ := client.AppendEntries(ctx, input)
+        if s.isLeader && !s.isCrashed { // leader not crashed yet 
+            output, _ := client.AppendEntries(ctx, input)  
             if output != nil && output.MatchedIndex == -2 { // retry
                 if s.isLeader && !s.isCrashed {
-                    output, _ = client.AppendEntries(ctx, input)
+                    output, _ = client.AppendEntries(ctx, input)  
                 }
             }
             if output == nil || !output.Success {
                 commitChan <- nil
-                return
-            }
-            if output.Success {
+            } else if output.Success {
                 commitChan <- output
-                return
             }
-        }        
+        }       
         
         // TODO update state. s.nextIndex, etc
 
@@ -240,14 +237,12 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
         MatchedIndex: -1,
     }
 
-    s.notCrashedCond.L.Lock()
     if s.isCrashed{ // don't update until recovered
-        s.notCrashedCond.Wait()   
         output.MatchedIndex = -2
-        println("continued")
-        return output, nil   
-    }     
-    s.notCrashedCond.L.Unlock()
+    }
+    if output.MatchedIndex == -2 {
+        return output, nil
+    }
 
     if input.LeaderCommit == -2 { // just wanted to update leader
         return output, nil
@@ -304,7 +299,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
 
     output.Success = true
     
-    return output, nil
+    return output, nil 
 	//return nil, nil
 }
 
