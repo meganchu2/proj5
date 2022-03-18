@@ -7,7 +7,7 @@ import (
     "math"
     "time"
     "google.golang.org/grpc"
-    "strings"
+    //"strings"
 )
 
 type RaftSurfstore struct {
@@ -199,18 +199,22 @@ func (s *RaftSurfstore) commitEntry(serverIdx, entryIdx int64, commitChan chan *
         
         //println(serverIdx,"state:",state.IsCrashed)
         if s.isLeader && !s.isCrashed { // leader not crashed yet 
-            output, err := client.AppendEntries(ctx, input)  
-            for s.isLeader && !s.isCrashed && err != nil && strings.Contains(err.Error(), "is crashed.") { // crashed
-				output, err = client.AppendEntries(ctx, input) // retry
-            }
+            output, _ := client.AppendEntries(ctx, input)  
+            // for s.isLeader && !s.isCrashed && err != nil && strings.Contains(err.Error(), "is crashed.") { // crashed
+			// 	println("retry crashed server")
+            //     output, err = client.AppendEntries(ctx, input) // retry
+            //}
             if output == nil || !output.Success {
                 commitChan <- nil
+                conn.Close()
+                return
             } else if output.Success {
                 commitChan <- output
+                conn.Close()
+                return
             }     
         }
-        conn.Close()
-        return
+        
         // } else if s.isLeader && s.isCrashed {            
         //     conn.Close()
         //     break
@@ -231,7 +235,7 @@ func (s *RaftSurfstore) commitEntry(serverIdx, entryIdx int64, commitChan chan *
 //of last new entry)
 func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInput) (*AppendEntryOutput, error) {
 	//panic("todo")
-
+    
     s.isLeaderMutex.Lock()
     s.isLeader = false
     s.isLeaderMutex.Unlock()
@@ -241,13 +245,12 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
         MatchedIndex: -1,
     }
 
-    crashed := false
+    //crashed := false
     for s.isCrashed{ // don't update until recovered
-        crashed = true        
     }
-    if crashed {        
-        return output, ERR_SERVER_CRASHED // retry to make sure leader still alive
-    }
+    // if crashed {        
+    //     return output, ERR_SERVER_CRASHED // retry to make sure leader still alive
+    // }
 
     if input.LeaderCommit == -2 { // just wanted to update leader
         return output, nil
@@ -303,7 +306,6 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
     }
 
     output.Success = true
-    
     return output, nil 
 	//return nil, nil
 }
