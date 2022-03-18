@@ -192,13 +192,13 @@ func (s *RaftSurfstore) commitEntry(serverIdx, entryIdx int64, commitChan chan *
 
         
         //println("waiting to recover",serverIdx)
-        state,_:= client.IsCrashed(ctx, &emptypb.Empty{})
-        if state.IsCrashed{    
-            _, _ = client.AppendEntries(ctx, input)                  
-        } // wait until server recovered to append
-        //println("recovered",serverIdx,"appending entries")
-        ctx2, cancel2 := context.WithTimeout(context.Background(), time.Second)
-        defer cancel2()
+        // state,_:= client.IsCrashed(ctx, &emptypb.Empty{})
+        // if state.IsCrashed{    
+        //     _, _ = client.AppendEntries(ctx, input)                  
+        // } // wait until server recovered to append
+        // //println("recovered",serverIdx,"appending entries")
+        // ctx2, cancel2 := context.WithTimeout(context.Background(), time.Second)
+        // defer cancel2()
         //println(serverIdx,"state:",state.IsCrashed)
         if s.isLeader && !s.isCrashed { // leader not crashed yet 
             output, _ := client.AppendEntries(ctx2, input)  
@@ -254,7 +254,6 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
     if s.isCrashed {
         for s.isCrashed{ // don't update until recovered
         }
-        return output, nil
     }
     // if crashed {        
     //     return output, ERR_SERVER_CRASHED // retry to make sure leader still alive
@@ -306,6 +305,9 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
     // print(s.commitIndex)
     // println(len(s.log))
     // println(len(input.Entries))
+    if len(s.ipList) == 4 {
+        return output, nil
+    }
     for s.lastApplied < s.commitIndex {
         s.lastApplied++
         entry := s.log[s.lastApplied]
