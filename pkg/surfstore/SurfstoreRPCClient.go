@@ -145,19 +145,6 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 	// panic("todo")
 	println("\nUPDATEFILE")
 
-	// crashed server cannot update file	
-	// server := strconv.Atoi(surfClient.BaseDir[4:])
-	// conn1, err1 := grpc.Dial(surfClient.MetaStoreAddrs[server], grpc.WithInsecure())
-	// if err1 != nil {
-	// 	return err1
-	// }
-	// c1 := NewRaftSurfstoreClient(conn)
-	// ctx1, cancel1 := context.WithTimeout(context.Background(), time.Second)
-	// defer cancel1()
-	// if state, _ := c1.IsCrashed(ctx1, &emptypb.Empty{}); state.IsCrashed {
-	// 	return nil // don't sync if client is crashed
-	// }
-
 	leaderFound := false
 	crashCount := 0
 	for _, addr := range surfClient.MetaStoreAddrs {
@@ -196,8 +183,7 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 		// close the connection
 		conn.Close()
 	}
-	print("crashCount")
-	println(crashCount)
+	println("crashCount",crashCount)
 	if crashCount > len(surfClient.MetaStoreAddrs) / 2 {
 		return ERR_SERVER_CRASHED // majority of servers crashed
 	}
