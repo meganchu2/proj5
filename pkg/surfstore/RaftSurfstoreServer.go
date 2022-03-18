@@ -191,15 +191,17 @@ func (s *RaftSurfstore) commitEntry(serverIdx, entryIdx int64, commitChan chan *
         defer cancel()
 
         
-        //println("waiting to recover",serverIdx)
-        // state,_:= client.AppendEntries(ctx, &emptypb.Empty{})
-        // if state.IsCrashed{                  
-        // } // wait until server recovered to append
-        // //println("recovered",serverIdx,"appending entries")
-        
+        println("waiting to recover",serverIdx)
+        state,_:= client.IsCrashed(ctx, &emptypb.Empty{})
+        if state.IsCrashed{    
+            _, _ = client.AppendEntries(ctx, input)                  
+        } // wait until server recovered to append
+        //println("recovered",serverIdx,"appending entries")
+        ctx2, cancel2 := context.WithTimeout(context.Background(), time.Second)
+        defer cancel2()
         //println(serverIdx,"state:",state.IsCrashed)
         if s.isLeader && !s.isCrashed { // leader not crashed yet 
-            output, _ := client.AppendEntries(ctx, input)  
+            output, _ := client.AppendEntries(ctx2, input)  
             // for s.isLeader && !s.isCrashed && err != nil && strings.Contains(err.Error(), "is crashed.") { // crashed
 			// 	println("retry crashed server")
             //     output, err = client.AppendEntries(ctx, input) // retry
@@ -247,7 +249,10 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
     }
 
     //crashed := false
-    for s.isCrashed{ // don't update until recovered
+    if s.isCrashed {
+        for s.isCrashed{ // don't update until recovered
+        }
+        return output, nil
     }
     // if crashed {        
     //     return output, ERR_SERVER_CRASHED // retry to make sure leader still alive
