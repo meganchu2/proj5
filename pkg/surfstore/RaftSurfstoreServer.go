@@ -207,10 +207,10 @@ func (s *RaftSurfstore) commitEntry(serverIdx, entryIdx int64, commitChan chan *
                 commitChan <- nil
             } else if output.Success {
                 commitChan <- output
-            }            
-            conn.Close()
-            return
+            }     
         }
+        conn.Close()
+        return
         // } else if s.isLeader && s.isCrashed {            
         //     conn.Close()
         //     break
