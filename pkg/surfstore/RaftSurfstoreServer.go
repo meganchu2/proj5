@@ -200,22 +200,21 @@ func (s *RaftSurfstore) commitEntry(serverIdx, entryIdx int64, commitChan chan *
         //println(serverIdx,"state:",state.IsCrashed)
         if s.isLeader && !s.isCrashed { // leader not crashed yet 
             output, err := client.AppendEntries(ctx, input)  
-            for err != nil && strings.Contains(err.Error(), "is crashed.") { // crashed
+            for s.isLeader && !s.isCrashed && err != nil && strings.Contains(err.Error(), "is crashed.") { // crashed
 				output, err = client.AppendEntries(ctx, input) // retry
             }
             if output == nil || !output.Success {
                 commitChan <- nil
-                conn.Close()
-                return
             } else if output.Success {
                 commitChan <- output
-                conn.Close()
-                return
-            }
-        } else if s.isLeader && s.isCrashed {            
+            }            
             conn.Close()
-            break
-        }     
+            return
+        }
+        // } else if s.isLeader && s.isCrashed {            
+        //     conn.Close()
+        //     break
+        // }     
         // TODO update state. s.nextIndex, etc
 
         // TODO handle crashed/ non success cases
