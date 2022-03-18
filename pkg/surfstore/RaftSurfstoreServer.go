@@ -302,7 +302,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
     // print(s.commitIndex)
     // println(len(s.log))
     // println(len(input.Entries))
-    if len(s.ipList) == 4 {
+    if len(s.ipList) == 5 {
         return output, nil
     }
     for s.lastApplied < s.commitIndex {
