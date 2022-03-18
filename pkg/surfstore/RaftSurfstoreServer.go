@@ -7,6 +7,7 @@ import (
     "math"
     "time"
     "google.golang.org/grpc"
+    "strings"
 )
 
 type RaftSurfstore struct {
@@ -198,19 +199,23 @@ func (s *RaftSurfstore) commitEntry(serverIdx, entryIdx int64, commitChan chan *
         
         //println(serverIdx,"state:",state.IsCrashed)
         if s.isLeader && !s.isCrashed { // leader not crashed yet 
-            output, _ := client.AppendEntries(ctx, input)  
-            if output != nil && output.MatchedIndex == -2 { // retry
-                if s.isLeader && !s.isCrashed {
-                    output, _ = client.AppendEntries(ctx, input)  
-                }
+            output, err := client.AppendEntries(ctx, input)  
+            for err != nil && strings.Contains(err.Error(), "is crashed.") { // crashed
+				output, err = client.AppendEntries(ctx, input) // retry
             }
             if output == nil || !output.Success {
                 commitChan <- nil
+                conn.Close()
+                return
             } else if output.Success {
                 commitChan <- output
+                conn.Close()
+                return
             }
-        }       
-        
+        } else if s.isLeader && s.isCrashed {            
+            conn.Close()
+            break
+        }     
         // TODO update state. s.nextIndex, etc
 
         // TODO handle crashed/ non success cases
@@ -238,10 +243,7 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
     }
 
     if s.isCrashed{ // don't update until recovered
-        output.MatchedIndex = -2
-    }
-    if output.MatchedIndex == -2 {
-        return output, nil
+        return output, ERR_SERVER_CRASHED
     }
 
     if input.LeaderCommit == -2 { // just wanted to update leader
