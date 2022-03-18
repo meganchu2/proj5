@@ -216,8 +216,6 @@ func (s *RaftSurfstore) commitEntry(serverIdx, entryIdx int64, commitChan chan *
                 conn.Close()
                 return
             }     
-        } else {
-            return
         }
         
         // } else if s.isLeader && s.isCrashed {            
@@ -251,9 +249,8 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
     }
 
     //crashed := false
-    if s.isCrashed {
-        for s.isCrashed{ // don't update until recovered
-        }
+    for s.isCrashed {
+        
     }
     // if crashed {        
     //     return output, ERR_SERVER_CRASHED // retry to make sure leader still alive
