@@ -201,7 +201,7 @@ func (s *RaftSurfstore) commitEntry(serverIdx, entryIdx int64, commitChan chan *
         // defer cancel2()
         //println(serverIdx,"state:",state.IsCrashed)
         if s.isLeader && !s.isCrashed { // leader not crashed yet 
-            output, _ := client.AppendEntries(ctx2, input)  
+            output, _ := client.AppendEntries(ctx, input)  
             // for s.isLeader && !s.isCrashed && err != nil && strings.Contains(err.Error(), "is crashed.") { // crashed
 			// 	println("retry crashed server")
             //     output, err = client.AppendEntries(ctx, input) // retry
