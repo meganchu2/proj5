@@ -241,8 +241,12 @@ func (s *RaftSurfstore) AppendEntries(ctx context.Context, input *AppendEntryInp
         MatchedIndex: -1,
     }
 
-    if s.isCrashed{ // don't update until recovered
-        return output, ERR_SERVER_CRASHED
+    crashed := false
+    for s.isCrashed{ // don't update until recovered
+        crashed = true        
+    }
+    if crashed {        
+        return output, ERR_SERVER_CRASHED // retry to make sure leader still alive
     }
 
     if input.LeaderCommit == -2 { // just wanted to update leader
